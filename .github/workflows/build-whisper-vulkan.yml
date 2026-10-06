@@ -3,7 +3,12 @@ name: Build whisper.cpp (Vulkan, portable CPU)
 on:
   push:
     tags: ['engine-vulkan-*']   # auto-runs when you push a tag like: engine-vulkan-b5130
-  workflow_dispatch:            # ...or press "Run workflow" by hand
+ workflow_dispatch:            # ...or press "Run workflow" by hand
+    inputs:
+      tag:
+        description: 'Release tag to publish the zip to (example: engine-vulkan-b5130)'
+        required: true
+        default: 'engine-vulkan-b5130'
 
 permissions:
   contents: write   # lets the job attach the zip to your release page
@@ -43,9 +48,11 @@ jobs:
           $hash = (Get-FileHash whisper-vulkan-win-x64-b5130.zip -Algorithm SHA256).Hash.ToLower()
           "$hash  whisper-vulkan-win-x64-b5130.zip" | Out-File SHA256SUMS.txt -Encoding ascii
 
-      - name: Publish to this tag's release page
+      - name: Publish to release
         uses: softprops/action-gh-release@v3
         with:
+          # Button runs use the name you typed; tag pushes use the pushed tag.
+          tag_name: ${{ github.event.inputs.tag || github.ref_name }}
           files: |
             whisper-vulkan-win-x64-b5130.zip
             SHA256SUMS.txt
