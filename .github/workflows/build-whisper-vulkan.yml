@@ -13,7 +13,7 @@ jobs:
     runs-on: windows-2022   # GitHub's computer, not yours. Free on public repos.
     steps:
       - name: Get official whisper.cpp code (pinned version)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           repository: ggml-org/whisper.cpp
           ref: b5130
@@ -44,7 +44,7 @@ jobs:
           "$hash  whisper-vulkan-win-x64-b5130.zip" | Out-File SHA256SUMS.txt -Encoding ascii
 
       - name: Publish to this tag's release page
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: |
             whisper-vulkan-win-x64-b5130.zip
