@@ -1,0 +1,51 @@
+name: Build whisper.cpp (Vulkan, portable CPU)
+
+on:
+  push:
+    tags: ['engine-vulkan-*']   # auto-runs when you push a tag like: engine-vulkan-b5130
+  workflow_dispatch:            # ...or press "Run workflow" by hand
+
+permissions:
+  contents: write   # lets the job attach the zip to your release page
+
+jobs:
+  build-windows-vulkan:
+    runs-on: windows-2022   # GitHub's computer, not yours. Free on public repos.
+    steps:
+      - name: Get official whisper.cpp code (pinned version)
+        uses: actions/checkout@v4
+        with:
+          repository: ggml-org/whisper.cpp
+          ref: b5130
+
+      - name: Install Vulkan tools (silent, nothing for you to click)
+        run: |
+          Invoke-WebRequest -Uri "https://sdk.lunarg.com/sdk/download/latest/windows/vulkan-sdk.exe" -OutFile "$env:TEMP\VulkanSDK.exe"
+          & "$env:TEMP\VulkanSDK.exe" --root C:\VulkanSDK --accept-licenses --default-answer --confirm-command install com.lunarg.vulkan.core
+          "C:\VulkanSDK\Bin" | Out-File -Append -Encoding utf8 $env:GITHUB_PATH
+          "VULKAN_SDK=C:\VulkanSDK" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
+
+      - name: Configure (Vulkan ON, portable CPU baseline)
+        # GGML_NATIVE=OFF is THE line that makes it run on old CPUs like your i5.
+        run: cmake -B build -DGGML_VULKAN=ON -DGGML_NATIVE=OFF -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build only whisper-cli (skips tests/servers, faster)
+        run: cmake --build build --config Release --target whisper-cli
+
+      - name: Smoke test (must exit 0 or the job fails here, before publishing)
+        run: .\build\bin\Release\whisper-cli.exe --help
+
+      - name: Pack the engine + its fingerprint
+        run: |
+          New-Item -ItemType Directory -Force engine-out | Out-Null
+          Copy-Item .\build\bin\Release\whisper-cli.exe, .\build\bin\Release\*.dll engine-out\
+          Compress-Archive -Path engine-out\* -DestinationPath whisper-vulkan-win-x64-b5130.zip -Force
+          $hash = (Get-FileHash whisper-vulkan-win-x64-b5130.zip -Algorithm SHA256).Hash.ToLower()
+          "$hash  whisper-vulkan-win-x64-b5130.zip" | Out-File SHA256SUMS.txt -Encoding ascii
+
+      - name: Publish to this tag's release page
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            whisper-vulkan-win-x64-b5130.zip
+            SHA256SUMS.txt
