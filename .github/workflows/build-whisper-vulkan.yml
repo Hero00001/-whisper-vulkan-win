@@ -3,7 +3,7 @@ name: Build whisper.cpp (Vulkan, portable CPU)
 on:
   push:
     tags: ['engine-vulkan-*']   # auto-runs when you push a tag like: engine-vulkan-b5130
- workflow_dispatch:            # ...or press "Run workflow" by hand
+  workflow_dispatch:            # ...or press "Run workflow" by hand
     inputs:
       tag:
         description: 'Release tag to publish the zip to (example: engine-vulkan-b5130)'
